@@ -40,6 +40,34 @@ app.use(cors({
 
 app.use(bodyParser.json())
 
+function verifyToken (req,res,next) {
+    let token = req.headers.authorization
+    if (
+        typeof token === 'string' &&
+        token.startWith('Bearer')
+    ) {
+        token = token.substring(7)
+        try{
+            jwt.verify(token,process.env.SECRET)
+            return next()
+        } catch (e) {
+            res.status(401)
+            res.json({
+                error:"Invalid Access Token "
+            })
+        }
+    } else {
+        res.status(401)
+        res.json({
+            error:"Access Token is required"
+        })
+    }
+}
+app.get('/me',verifyToken, (req, res) =>{
+    res.send('Salut!')
+    console.log('Salut!')
+})
+
 app.post('/user', async (req,res) =>{
     const email = req.body.email
     const password = req.body.password
@@ -73,8 +101,17 @@ app.post('/login', async (req,res)=>{
     const data = await user.findOne({
         email
     })
-    if (bcrypt.compareSync(password, data.password)){
-
+    if (bcryptjs.compareSync(password, data.password)){
+        const token = jwt.sign({
+            id: data._id,
+            name:data.name,
+            email: data.email,
+        }, process.env.SECRET,{
+            expiresIn:86400 // 24h
+        })
+        res.json({
+            token
+        })
     } else {
 
     }
