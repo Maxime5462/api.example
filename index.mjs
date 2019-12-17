@@ -39,16 +39,18 @@ app.use(cors({
 }))
 
 app.use(bodyParser.json())
+app.use(express.static('docs'))
+
 
 function verifyToken (req,res,next) {
     let token = req.headers.authorization
     if (
         typeof token === 'string' &&
-        token.startWith('Bearer')
+        token.startsWith('Bearer ')
     ) {
         token = token.substring(7)
         try{
-            jwt.verify(token,process.env.SECRET)
+            jwt.verify(token, process.env.SECRET)
             return next()
         } catch (e) {
             res.status(401)
@@ -63,11 +65,42 @@ function verifyToken (req,res,next) {
         })
     }
 }
+
+/**
+ * @api {get} /me Afficher l'utilisateur connecté
+ * @apiHeader Authorization Basic Access Authentication token
+ * @apiName GetMe
+ * @apiGroup Users
+ * @apiSampleRequest me
+ */
+
 app.get('/me',verifyToken, (req, res) =>{
-    res.send('Salut!')
-    console.log('Salut!')
+    const token = req.headers.authorization.substring(7)
+    const decoded =jwt.verify(token, process.env.SECRET)
+    res.json({
+        id: decoded.id,
+        email: decoded.email,
+        name: decoded.name
+    })
 })
 
+/**
+ * @api {post} /user Créer un utilisateur
+ * @apiName PostUser
+ * @apiGroup Users
+ * @apiHeader Content-Type=application/json application/json
+ * @apiExample Example usage:
+ *     body:
+ *     {
+ *       "email": "user@email.com",
+ *       "name": "User name",
+ *       "password": "szjkdjklkjdz"
+ *     }
+ * @apiParam (body/json) {String} email User email
+ * @apiParam (body/json) {String} name User name
+ * @apiParam (body/json) {String} password User password
+ * @apiSampleRequest user
+ */
 app.post('/user', async (req,res) =>{
     const email = req.body.email
     const password = req.body.password
@@ -94,6 +127,23 @@ app.post('/user', async (req,res) =>{
 
     console.log(hash)
 })
+
+/**
+ * @api {post} /login Se connecter
+ * @apiName PostLogin
+ * @apiGroup Users
+ * @apiHeader Content-Type=application/json application/json
+ * @apiExample Example usage:
+ *     body:
+ *     {
+ *       "email": "user@email.com",
+ *       "password": "szjkdjklkjdz"
+ *     }
+ * @apiParam (body/json) {String} email User email
+ * @apiParam (body/json) {String} password User password
+ * @apiSampleRequest login
+ */
+
 app.post('/login', async (req,res)=>{
     const email = req.body.email
     const password = req.body.password
